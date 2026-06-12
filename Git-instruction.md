@@ -16,5 +16,5 @@
     * add comment -> create pull request
 
 - apres modificaiton:
-    - commit:
-    - push 
+    - commit: ( plus bas , a gauche ,)
+    - push  public origin

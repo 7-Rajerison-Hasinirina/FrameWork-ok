@@ -17,3 +17,5 @@
     - Creation de projet ProjetTest qui utilses tomcat
     - Puis on ajoute dans le lib de projet ce Framwork.jar
     - Dans WEB-INF, on a web.xml, on ajoute le servlet et le mapping de ce servlet (AffControllerServlet) , ( on va appeler dans ce web.xml ce AffControllerServlet pavec /* , et apres, a chaque fois qu'on a fait une requete, toutes ces requetes passent toujours dans le AffControllerServlet , et dans ce servlet, on affiche tout les url ( requete) qui passe sur ce servlet )
+
+    

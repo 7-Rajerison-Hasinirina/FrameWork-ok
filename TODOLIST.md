@@ -18,4 +18,31 @@
     - Puis on ajoute dans le lib de projet ce Framwork.jar
     - Dans WEB-INF, on a web.xml, on ajoute le servlet et le mapping de ce servlet (AffControllerServlet) , ( on va appeler dans ce web.xml ce AffControllerServlet pavec /* , et apres, a chaque fois qu'on a fait une requete, toutes ces requetes passent toujours dans le AffControllerServlet , et dans ce servlet, on affiche tout les url ( requete) qui passe sur ce servlet )
 
-    
+
+
+# Sprint - 2 : Creation de UrlMapping 
+Fonctionnalités: 
+- Objectif : On tape un url sur la barre de navigation -> puis on voit si cet url existe et on va afficher dans quelle classe et quelle méthode il se trouve   
+sinon , on affiche , url indefini
+
+- comment ?
+Création Annotations pour les méthode:         
+    * On a une methode annote par @UrlMapping ( ex:/liste/tout )
+
+Critères : 
+Partie test : 
+On a : ClassseController avec @Controller 
+Et on a une méthode : Liste() annote par @UrlMapping ( ex:/liste) par exemple 
+Cette méthode est annoté àvec @UrlMapping ( paramètres : /liste/tout ) 
+
+-> jerena n liste ana cobtrolleru 
+-> verifiena hoe ty v controller 
+-> jerena daol ndray n méthode any
+-> verifiena hoe misy Annotations anle @UrlMapping vé 
+     Ra misy : de Alaina le valeur 
+     F attendu : 
+     - url ....
+        - controller ( classe ) 
+        - méthode 
+
+-> misy variable miampy ndray ao amle FrontServlet

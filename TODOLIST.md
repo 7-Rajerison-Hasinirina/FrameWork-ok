@@ -46,3 +46,11 @@ Cette méthode est annoté àvec @UrlMapping ( paramètres : /liste/tout )
         - méthode 
 
 -> misy variable miampy ndray ao amle FrontServlet
+
+## Remarques:
+// Comment va t-on gerer pour que si dans une controller , on pourra aovoir a un url qui sont les meme mais avec des methodes differents, pexemple l'un execute post et l'un execute get, comment on va faire pour que le framework puisse differencier les deux methodes ?
+la solutio est de creer une classe avec trois attributs:
+    - url
+    - methode
+    - 
+

@@ -21,7 +21,8 @@ import annotation.UrlMapping;
 public class FrontControllerServlet extends HttpServlet {
 
     protected List<String> listeController;
-    protected HashMap<String, Mapping> urlMappings;
+    // protected HashMap<String, Mapping> urlMappings;
+    protected HashMap<UrlMethod, Mapping> urlMappings;
 
     @Override
     public void init() throws ServletException {
@@ -42,8 +43,10 @@ public class FrontControllerServlet extends HttpServlet {
                     for (Method methode : methodes) {
                         UrlMapping annotation = methode.getAnnotation(UrlMapping.class);
                         String url = annotation.value();
-                        Mapping mapping = new Mapping(nomControleur, methode.getName());
-                        urlMappings.put(url, mapping);
+                        String methodeHttp = annotation.method();
+                        UrlMethod cle = new UrlMethod( url, methodeHttp );
+                        Mapping mapping = new Mapping( nomControleur, methode.getName() );
+                        urlMappings.put( cle, mapping );
                     }
                 }
             }
@@ -68,11 +71,22 @@ public class FrontControllerServlet extends HttpServlet {
         String contexte = request.getContextPath();
         String urlRecherchee = url.substring(contexte.length());
         PrintWriter out = response.getWriter();
-        Mapping mapping = urlMappings.get(urlRecherchee);
+        String methodHttp = request.getMethod();
+        UrlMethod urlMethod = new UrlMethod(urlRecherchee, methodHttp);
+        Mapping mapping = urlMappings.get(urlMethod);
 
         if (mapping == null) {
             out.println("URL inconnue : " + urlRecherchee);
-        } else {
+
+            out.println("<br><br>");
+            out.println("URLs disponibles :");
+            out.println("<br>");
+
+            for (UrlMethod cle : urlMappings.keySet()) {
+                out.println(cle.getUrl());
+                out.println("<br>");
+            }
+        }else {
             out.println(  "URL : "  + urlRecherchee);
             out.println("<br>");
 

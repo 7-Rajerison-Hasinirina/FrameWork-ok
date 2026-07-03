@@ -28,7 +28,10 @@ public class FrontControllerServlet extends HttpServlet {
             if (!this.getInitParameter("controllerPackage").isEmpty()) {
 
                 controllerPackage = this.getInitParameter("controllerPackage");
+<<<<<<< Updated upstream
 
+=======
+>>>>>>> Stashed changes
                 listeController = Utilitaires.getClassByPackageAndAnnotation(
                         Controller.class,
                         controllerPackage,
@@ -39,10 +42,14 @@ public class FrontControllerServlet extends HttpServlet {
 
                 for (String nomControleur : listeController) {
 
+<<<<<<< Updated upstream
                     Class<?> classeControleur = Class.forName(
                             controllerPackage + "." + nomControleur
                     );
 
+=======
+                    Class<?> classeControleur = Class.forName(  controllerPackage + "." + nomControleur );
+>>>>>>> Stashed changes
                     List<Method> methodes = Utilitaires.getMethodesAnnotees(
                             classeControleur,
                             UrlMapping.class
@@ -90,14 +97,19 @@ public class FrontControllerServlet extends HttpServlet {
     }
 
     @Override
+<<<<<<< Updated upstream
     protected void doGet(
             HttpServletRequest request,
             HttpServletResponse response
     ) throws ServletException, IOException {
+=======
+    protected void doGet( HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
+>>>>>>> Stashed changes
         processRequest(request, response);
     }
 
     @Override
+<<<<<<< Updated upstream
     protected void doPost(
             HttpServletRequest request,
             HttpServletResponse response
@@ -110,11 +122,20 @@ public class FrontControllerServlet extends HttpServlet {
             HttpServletResponse response
     ) throws ServletException, IOException {
 
+=======
+    protected void doPost( HttpServletRequest request,   HttpServletResponse response ) throws ServletException, IOException {
+        processRequest(request, response);
+    }
+
+
+    private void processRequest( HttpServletRequest request,  HttpServletResponse response) throws ServletException, IOException {
+>>>>>>> Stashed changes
         String url = request.getRequestURI();
         String contexte = request.getContextPath();
         String urlRecherchee = url.substring(contexte.length());
 
         String methodeHttp = request.getMethod();
+<<<<<<< Updated upstream
 
         UrlMethod urlMethod = new UrlMethod(
                 urlRecherchee,
@@ -125,6 +146,11 @@ public class FrontControllerServlet extends HttpServlet {
                 urlMethod
         );
 
+=======
+        UrlMethod urlMethod = new UrlMethod( urlRecherchee, methodeHttp);
+
+        Mapping mapping = urlMappings.get( urlMethod);
+>>>>>>> Stashed changes
         PrintWriter out = response.getWriter();
 
         if (mapping == null) {
@@ -172,10 +198,14 @@ public class FrontControllerServlet extends HttpServlet {
                     );
                 }
 
+<<<<<<< Updated upstream
                 Object resultat =
                         methode.invoke(
                                 instanceControleur
                         );
+=======
+                Object resultat =  methode.invoke( instanceControleur  );
+>>>>>>> Stashed changes
 
                 out.println("Invocation réussie");
                 out.println("<br>");

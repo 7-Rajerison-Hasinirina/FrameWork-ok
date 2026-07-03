@@ -54,3 +54,22 @@ la solutio est de creer une classe avec trois attributs:
     - methode
     - 
 
+
+# Sprint- 3 ( suite de sprint 2)
+- Situation actuelle:
+on a ClasseController
+        - UrlMapping("/test")
+        -public void test(){}
+
+- Problematique:
+    - meme url 
+        - methode1 ( post)
+        - methode2 ( get )
+
+- Solutions:
+
+# Sprint-3-bis
+- On appelle la methode 
+
+- Fonctionnalites attendues
+

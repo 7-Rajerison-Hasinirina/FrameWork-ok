@@ -55,7 +55,7 @@ la solutio est de creer une classe avec trois attributs:
     - 
 
 
-# Sprint- 3 ( suite de sprint 2)
+# Sprint- 3 ( suite de sprint 2) - ok
 - Situation actuelle:
 on a ClasseController
         - UrlMapping("/test")
@@ -68,8 +68,21 @@ on a ClasseController
 
 - Solutions:
 
-# Sprint-3-bis
+# Sprint-3-bis - ok
 - On appelle la methode 
 
 - Fonctionnalites attendues
 
+# Sprint-4 - ok
+- On utilise Listener 
+    - avant on met dans init
+    - maintennat, on le mettre dans Listener 
+# Sprint 5
+Hoan sprint 4, Ilay tanjona dia mandefa donné am page amzay. 
+
+Manao donné statique ao anaty méthode ---> antsoina Ilay methode am alalan Ilay url --> request.addAttribute no mandefa data --> return Ilay view andefasan Ilay data --> mankan am jsp --> Alaina Ilay data dia affichena
+
+- Objectif: envoi de donnees dans une page
+    - avant , on ne fait que d'afficher la methode associe a un url , et on invoke justement
+    - maintenant , on va envoyer des donnees dans une page
+- On met juste les do

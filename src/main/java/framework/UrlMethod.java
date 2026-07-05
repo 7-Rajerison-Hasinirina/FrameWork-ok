@@ -21,27 +21,16 @@ public class UrlMethod {
     }
 
     @Override
-    public boolean equals(Object objet) {
-
-        if (this == objet) {
-            return true;
-        }
-
-        if (objet == null || getClass() != objet.getClass()) {
-            return false;
-        }
-
-        UrlMethod autre = (UrlMethod) objet;
-
-        return Objects.equals(url, autre.url)
-                && Objects.equals(
-                        methodeHttp,
-                        autre.methodeHttp
-                );
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        UrlMethod that = (UrlMethod) o;
+        return Objects.equals(url, that.url) &&
+               Objects.equals(methodeHttp.toUpperCase(), that.methodeHttp.toUpperCase());
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(  url,  methodeHttp );
+        return Objects.hash(url, methodeHttp.toUpperCase());
     }
 }

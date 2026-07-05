@@ -1,208 +1,99 @@
 package framework;
 
+import jakarta.servlet.ServletException;
+import jakarta.servlet.http.*;
+
 import java.io.IOException;
 import java.io.PrintWriter;
-import java.lang.annotation.ElementType;
 import java.lang.reflect.Method;
 import java.util.HashMap;
-import java.util.List;
-
-import annotation.Controller;
-import annotation.UrlMapping;
-import jakarta.servlet.ServletException;
-import jakarta.servlet.http.HttpServlet;
-import jakarta.servlet.http.HttpServletRequest;
-import jakarta.servlet.http.HttpServletResponse;
-import util.Utilitaires;
 
 public class FrontControllerServlet extends HttpServlet {
 
-    protected List<String> listeController;
-    protected HashMap<UrlMethod, Mapping> urlMappings;
-    protected String controllerPackage;
+    private FrameworkConfiguration configuration;
 
     @Override
     public void init() throws ServletException {
-        try {
 
-            if (!this.getInitParameter("controllerPackage").isEmpty()) {
+        configuration = (FrameworkConfiguration)
+                getServletContext().getAttribute("frameworkConfiguration");
 
-                controllerPackage = this.getInitParameter("controllerPackage");
-
-                listeController = Utilitaires.getClassByPackageAndAnnotation(
-                        Controller.class,
-                        controllerPackage,
-                        ElementType.TYPE
-                );
-
-                urlMappings = new HashMap<>();
-
-                for (String nomControleur : listeController) {
-
-                    Class<?> classeControleur = Class.forName(
-                            controllerPackage + "." + nomControleur
-                    );
-
-                    List<Method> methodes = Utilitaires.getMethodesAnnotees(
-                            classeControleur,
-                            UrlMapping.class
-                    );
-
-                    for (Method methode : methodes) {
-
-                        UrlMapping annotation = methode.getAnnotation(
-                                UrlMapping.class
-                        );
-
-                        String url = annotation.value();
-                        String methodeHttp = annotation.method();
-
-                        UrlMethod cle = new UrlMethod(
-                                url,
-                                methodeHttp
-                        );
-
-                        if (urlMappings.containsKey(cle)) {
-                            throw new Exception(
-                                    "URL déjà utilisée : "
-                                            + methodeHttp
-                                            + " "
-                                            + url
-                            );
-                        }
-
-                        Mapping mapping = new Mapping(
-                                nomControleur,
-                                methode.getName()
-                        );
-
-                        urlMappings.put(
-                                cle,
-                                mapping
-                        );
-                    }
-                }
-            }
-
-        } catch (Exception e) {
-            throw new ServletException(e);
+        if (configuration == null) {
+            throw new ServletException(
+                    "Framework non initialisé (FrameworkConfiguration manquant)"
+            );
         }
     }
 
     @Override
-    protected void doGet(
-            HttpServletRequest request,
-            HttpServletResponse response
-    ) throws ServletException, IOException {
-        processRequest(request, response);
+    protected void doGet(HttpServletRequest req, HttpServletResponse resp)
+            throws ServletException, IOException {
+        process(req, resp);
     }
 
     @Override
-    protected void doPost(
-            HttpServletRequest request,
-            HttpServletResponse response
-    ) throws ServletException, IOException {
-        processRequest(request, response);
+    protected void doPost(HttpServletRequest req, HttpServletResponse resp)
+            throws ServletException, IOException {
+        process(req, resp);
     }
 
-    private void processRequest(
-            HttpServletRequest request,
-            HttpServletResponse response
-    ) throws ServletException, IOException {
+    private void process(HttpServletRequest request, HttpServletResponse response)
+            throws IOException {
+
+        response.setContentType("text/html;charset=UTF-8");
+        PrintWriter out = response.getWriter();
 
         String url = request.getRequestURI();
-        String contexte = request.getContextPath();
-        String urlRecherchee = url.substring(contexte.length());
+        String context = request.getContextPath();
+        String path = url.substring(context.length());
 
-        String methodeHttp = request.getMethod();
+        String methodHttp = request.getMethod().toUpperCase();
 
-        UrlMethod urlMethod = new UrlMethod(
-                urlRecherchee,
-                methodeHttp
-        );
+        UrlMethod key = new UrlMethod(path, methodHttp);
 
-        Mapping mapping = urlMappings.get(
-                urlMethod
-        );
+        HashMap<UrlMethod, Mapping> mappings =
+                configuration.getUrlMappings();
 
-        PrintWriter out = response.getWriter();
+        Mapping mapping = mappings.get(key);
 
         if (mapping == null) {
 
-            out.println("URL inconnue : " + urlRecherchee);
-            out.println("<br><br>");
-            out.println("URLs disponibles :");
-            out.println("<br>");
+            out.println("<h3>URL inconnue : " + path + "</h3>");
 
-            for (UrlMethod cle : urlMappings.keySet()) {
-                out.println(
-                        cle.getMethodeHttp()
-                                + " "
-                                + cle.getUrl()
-                );
-                out.println("<br>");
+            out.println("<b>URLs disponibles :</b><br>");
+
+            for (UrlMethod k : mappings.keySet()) {
+                out.println(k.getMethodeHttp() + " " + k.getUrl() + "<br>");
             }
 
-        } else {
+            return;
+        }
 
-            try {
+        try {
 
-                Class<?> classeControleur = Class.forName(
-                        controllerPackage
-                                + "."
-                                + mapping.getNomClasse()
-                );
+            Class<?> controllerClass =
+                    Class.forName(configuration.getControllerPackage()
+                            + "." + mapping.getNomClasse());
 
-                Object instanceControleur =
-                        classeControleur
-                                .getDeclaredConstructor()
-                                .newInstance();
+            Object controller = controllerClass.getDeclaredConstructor().newInstance();
 
-                Method methode =
-                        classeControleur.getDeclaredMethod(
-                                mapping.getNomMethode()
-                        );
+            Method method = controllerClass.getDeclaredMethod(mapping.getNomMethode());
 
-                if (methode.getParameterCount() != 0) {
-                    throw new Exception(
-                            "La méthode "
-                                    + methode.getName()
-                                    + " possède des paramètres. "
-                                    + "Le Sprint 3-bis ne supporte pas encore cela."
-                    );
-                }
+            Object result = method.invoke(controller);
 
-                Object resultat =
-                        methode.invoke(
-                                instanceControleur
-                        );
+            out.println("<h3>OK INVOCATION</h3>");
+            out.println("URL : " + path + "<br>");
+            out.println("HTTP : " + methodHttp + "<br>");
+            out.println("Controller : " + mapping.getNomClasse() + "<br>");
+            out.println("Method : " + mapping.getNomMethode() + "<br>");
 
-                out.println("Invocation réussie");
-                out.println("<br>");
-                out.println("URL : " + urlRecherchee);
-                out.println("<br>");
-                out.println("HTTP : " + methodeHttp);
-                out.println("<br>");
-                out.println("Controller : " + mapping.getNomClasse());
-                out.println("<br>");
-                out.println("Méthode exécutée : " + mapping.getNomMethode());
-
-                if (resultat != null) {
-                    out.println("<br>");
-                    out.println("Valeur retournée : " + resultat);
-                }
-
-            } catch (Exception e) {
-
-                out.println(
-                        "Erreur lors de l'invocation : "
-                                + e.getMessage()
-                );
-
-                out.println("<br><br>");
-
-                e.printStackTrace(out);
+            if (result != null) {
+                out.println("Result : " + result);
             }
+
+        } catch (Exception e) {
+            out.println("<h3>ERROR</h3>");
+            out.println(e.getMessage());
         }
     }
 }

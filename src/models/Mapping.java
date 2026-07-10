@@ -1,4 +1,4 @@
-package framework;
+package models;
 
 public class Mapping {
 

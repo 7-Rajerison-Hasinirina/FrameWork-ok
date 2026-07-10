@@ -77,12 +77,17 @@ on a ClasseController
 - On utilise Listener 
     - avant on met dans init
     - maintennat, on le mettre dans Listener 
+
 # Sprint 5
 Hoan sprint 4, Ilay tanjona dia mandefa donné am page amzay. 
 
 Manao donné statique ao anaty méthode ---> antsoina Ilay methode am alalan Ilay url --> request.addAttribute no mandefa data --> return Ilay view andefasan Ilay data --> mankan am jsp --> Alaina Ilay data dia affichena
 
+Dans le projetTest
 - Objectif: envoi de donnees dans une page
     - avant , on ne fait que d'afficher la methode associe a un url , et on invoke justement
     - maintenant , on va envoyer des donnees dans une page
-- On met juste les do
+- On cree une fonciton List<String> liste(){ List<String> listes = new ..., return listes et l'envoir vert  }
+- Puis on appelle cette methode a partir de l'url 
+- request.addAttribute evnoi le donnees vers le view ( le jsp )
+- On recupere le donnee puis on les affiche

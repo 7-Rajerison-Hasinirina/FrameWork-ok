@@ -91,3 +91,8 @@ Dans le projetTest
 - Puis on appelle cette methode a partir de l'url 
 - request.addAttribute evnoi le donnees vers le view ( le jsp )
 - On recupere le donnee puis on les affiche
+
+
+# Sprint-5-bis
+
+- fini

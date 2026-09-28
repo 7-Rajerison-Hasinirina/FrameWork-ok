@@ -96,3 +96,11 @@ Dans le projetTest
 # Sprint-5-bis
 
 - fini
+
+
+# Sprint-6
+- creation d'une API 
+- miretourne JSON re miantso aanly API 
+
+cote framework
+- ampiana annotaiton ray : @APIRest 

@@ -11,9 +11,16 @@ import jakarta.servlet.http.HttpServlet;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 
+// Importations Spring nécessaires pour récupérer le conteneur IoC
+import org.springframework.web.context.WebApplicationContext;
+import org.springframework.web.context.support.WebApplicationContextUtils;
+
 import models.Mapping;
 import models.ModelView;
 import models.UrlMethode;
+
+import com.google.gson.Gson;
+import annotations.ApiRest;
 
 public class FrontServletController extends HttpServlet {
 
@@ -21,6 +28,7 @@ public class FrontServletController extends HttpServlet {
     protected void processRequest(HttpServletRequest req, HttpServletResponse res)
             throws ServletException, IOException {
         
+        // Récupération de la table de routage générée par le Listener
         Map<UrlMethode, Mapping> urlMappings = (Map<UrlMethode, Mapping>) getServletContext().getAttribute("routes");
 
         if (urlMappings == null) {
@@ -46,43 +54,65 @@ public class FrontServletController extends HttpServlet {
 
         try {
             res.setContentType("text/html;charset=UTF-8");
-            PrintWriter out = res.getWriter();
+            // PrintWriter out = res.getWriter();
 
-            // Récupération du package depuis le ServletContext
+            // 1. Récupération du conteneur Spring (ApplicationContext) associé au ServletContext
+            WebApplicationContext springContext = WebApplicationContextUtils.getRequiredWebApplicationContext(getServletContext());
+
+            // 2. Récupération du nom du package depuis le ServletContext
             String controllerPackage = getServletContext().getInitParameter("Controllers");
             
-            // Instanciation et invocation dynamique (Réflexion)
+            // 3. Récupération de la classe du contrôleur par son nom complet
             Class<?> controllerClass = Class.forName(controllerPackage + "." + mapping.getNomClasse());
-            Object controller = controllerClass.getDeclaredConstructor().newInstance();
-            Method method = controllerClass.getDeclaredMethod(mapping.getNomMethode());
             
+            // 4. RÉSOLUTION DE LA CORRECTION : 
+            // On demande l'instance (le Bean) directement à Spring au lieu d'utiliser "newInstance()".
+            // De cette manière, l'instance récupérée possède toutes ses dépendances (@Autowired, @Service...) fonctionnelles.
+            Object controller = springContext.getBean(controllerClass);
+            
+            // 5. Récupération et invocation dynamique de la méthode cible
+            Method method = controllerClass.getDeclaredMethod(mapping.getNomMethode());
             Object retour = method.invoke(controller);
 
-            // GESTION DU RETOUR (ModelView ou String classique)
-            if (retour instanceof ModelView) {
-                ModelView mv = (ModelView) retour;
-                
-                // 1. Récupération des paramètres avec les termes de Spring
-                String prefix = getServletContext().getInitParameter("prefix");
-                String suffix = getServletContext().getInitParameter("suffix");
-                
-                // Sécurité au cas où les paramètres ne seraient pas définis dans web.xml
-                if (prefix == null) prefix = "";
-                if (suffix == null) suffix = "";
-                
-                // 2. Injection des données du ModelView dans la requête HTTP
-                for (Map.Entry<String, Object> entry : mv.getData().entrySet()) {
-                    req.setAttribute(entry.getKey(), entry.getValue());
+            // -----------------------------------------------------------
+            // Traitement de l'annotation @ApiRest
+            // -----------------------------------------------------------
+            if (method.isAnnotationPresent(ApiRest.class)) {
+                res.setContentType("application/json;charset=UTF-8");
+                PrintWriter out = res.getWriter();
+
+                if (retour instanceof String) {
+                    // Si la méthode renvoie déjà une chaîne de caractères
+                    out.print((String) retour);
+                } else if (retour != null) {
+                    // Pour tout autre objet (List, Map, Objet métier...), conversion automatique en JSON
+                    Gson gson = new Gson();
+                    out.print(gson.toJson(retour));
                 }
-                
-                // 3. Construction du chemin final et transfert (Forward)
-                String viewPath = prefix + mv.getUrl() + suffix;
-                RequestDispatcher dispatcher = req.getRequestDispatcher(viewPath);
-                dispatcher.forward(req, res);
-                
-            } else if (retour != null) {
-                // Rendu du résultat classique (String ou autre)
-                out.println(retour.toString());
+            } else {
+                // ----------------------------------------------------------
+                // COMPORTEMENT CLASSIQUE (ModelView ou HTML brut)
+                // -----------------------------------------------------------
+                if (retour instanceof ModelView) {
+                    ModelView mv = (ModelView) retour;
+                    String prefix = getServletContext().getInitParameter("prefix");
+                    String suffix = getServletContext().getInitParameter("suffix");
+                    
+                    if (prefix == null) prefix = "";
+                    if (suffix == null) suffix = "";
+                    
+                    for (Map.Entry<String, Object> entry : mv.getData().entrySet()) {
+                        req.setAttribute(entry.getKey(), entry.getValue());
+                    }
+                    
+                    String viewPath = prefix + mv.getUrl() + suffix;
+                    RequestDispatcher dispatcher = req.getRequestDispatcher(viewPath);
+                    dispatcher.forward(req, res);
+                    
+                } else if (retour != null) {
+                    res.setContentType("text/html;charset=UTF-8");
+                    res.getWriter().println(retour.toString());
+                }
             }
 
         } catch (Exception e) {

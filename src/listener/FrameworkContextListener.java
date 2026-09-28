@@ -49,7 +49,7 @@ public class FrameworkContextListener implements ServletContextListener {
                     for (Method methode : methodes) {
                         UrlMapping annotation = methode.getAnnotation(UrlMapping.class);
                         String url = annotation.value();
-                        String httpMethod = annotation.METHOD().toUpperCase(); 
+                        String httpMethod = annotation.METHOD().toUpperCase(); // Sécurité : forcer en MAJUSCULE
 
                         UrlMethode key = new UrlMethode(url, httpMethod);
                         Mapping existingMapping = urlMappings.get(key);

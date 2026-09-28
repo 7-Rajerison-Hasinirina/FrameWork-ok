@@ -1,116 +1,65 @@
-
-
 #!/bin/bash
 
-# Définition des variables
-APP_NAME="FrameWork"
-SRC_DIR="src/main/java"
-WEB_DIR="src/main/webapp"
-BUILD_DIR="build"
-LIB_DIR="src/main/webapp/WEB-INF/lib"
-TOMCAT_DIR="/home/hasina/DOSSIERL2/tomcat/"
-TOMCAT_LIB="$TOMCAT_DIR/lib"
-TOMCAT_WEBAPPS="$TOMCAT_DIR/webapps"
+# 1. Définition des variables
+JAR_NAME="framework.jar"
+SRC_DIR="src"
+BIN_DIR="bin"
 
-clear
+# 2. Nettoyage des anciens dossiers
+echo "🧹 Nettoyage des anciennes compilations..."
+rm -rf "$BIN_DIR"
+rm -f "$JAR_NAME"
+mkdir "$BIN_DIR"
 
+echo "⚙️ Compilation des fichiers Java..."
 
-
-# Construction du CLASSPATH
-SERVLET_API="$TOMCAT_LIB/servlet-api.jar:$TOMCAT_LIB/jsp-api.jar:lib/mysql-connector-j-9.4.0.jar"
-CLASSPATH="$SERVLET_API:$OJDBC_JAR"
-
-# Nettoyage et création des répertoires
-echo "Nettoyage..."
-rm -rf "$BUILD_DIR"
-mkdir -p "$BUILD_DIR/WEB-INF/classes"
-mkdir -p "$BUILD_DIR/WEB-INF/lib"
-
-# Compilation des fichiers Java
-echo "Compilation des classes Java..."
+# Utilisation de find pour lister tous les fichiers .java
 find "$SRC_DIR" -name "*.java" > sources.txt
 
-javac -cp "$CLASSPATH" -d "$BUILD_DIR/WEB-INF/classes" @sources.txt
+# Sélection d'un JDK compatible Jakarta Servlet / Spring 6 (Java 17+)
+JAVA_HOME="${JAVA_HOME:-/usr/lib/jvm/java-17-openjdk-amd64}"
+if [ ! -x "$JAVA_HOME/bin/javac" ]; then
+    for candidate in \
+        /usr/lib/jvm/java-21-openjdk-amd64 \
+        /usr/lib/jvm/java-17-openjdk-amd64 \
+        /usr/lib/jvm/jdk-17-oracle-x64 \
+        /usr/lib/jvm/java-11-openjdk-amd64; do
+        if [ -x "$candidate/bin/javac" ]; then
+            JAVA_HOME="$candidate"
+            break
+        fi
+    done
+fi
 
-if [ $? -ne 0 ]; then
-    echo "Erreur lors de la compilation"
-    rm sources.txt
+export JAVA_HOME
+export PATH="$JAVA_HOME/bin:$PATH"
+
+# Exclusion du vieux JAR servlet-api.jar (Java EE 8 / class version 52) qui est incompatible
+# avec les imports Jakarta Servlet utilisés dans le projet.
+CLASSPATH=$(find "lib" -maxdepth 1 -type f -name '*.jar' ! -name 'servlet-api.jar' -printf '%p:' | sed 's/:$//')
+
+if [ -z "$CLASSPATH" ]; then
+    echo "❌ Aucun JAR compatible trouvé dans le dossier 'lib'."
     exit 1
+fi
+
+"$JAVA_HOME/bin/javac" -cp "$CLASSPATH" -d "$BIN_DIR" @sources.txt
+
+COMPILE_STATUS=$?
+rm -f sources.txt
+
+if [ $COMPILE_STATUS -eq 0 ]; then
+    echo "✅ Compilation réussie. Création du fichier JAR..."
+    
+    # Déplacement dans le dossier bin pour empaqueter
+    cd "$BIN_DIR" || exit
+    
+    # Création du JAR avec toutes les classes du framework
+    jar -cvf "../$JAR_NAME" .
+    cd ..
+    
+    echo "🎉 Le fichier '$JAR_NAME' est prêt et à jour !"
 else
-    echo "Compilation réussie"
-fi
-
-rm sources.txt
-
-# Copie des fichiers web (JSP, web.xml, etc.)
-echo "Copie des fichiers web..."
-cp -r "$WEB_DIR"/* "$BUILD_DIR/"
-
-# Copie des bibliothèques (ojdbc.jar) dans WEB-INF/lib
-echo "Copie des bibliothèques..."
-if [ -d "$LIB_DIR" ]; then
-    cp "$LIB_DIR"/*.jar "$BUILD_DIR/WEB-INF/lib/" 2>/dev/null
-    echo "Bibliothèques copiées (incluant ojdbc)"
-fi
-
-# Génération du fichier WAR
-echo "Création du fichier WAR..."
-cd "$BUILD_DIR" || exit
-jar -cf "$APP_NAME.war" *
-cd ..
-
-if [ ! -f "$BUILD_DIR/$APP_NAME.war" ]; then
-    echo "Erreur : Échec de la création du WAR"
-    exit 1
-fi
-
-echo "WAR créé : $BUILD_DIR/$APP_NAME.war"
-
-# Génération du fichier JAR
-echo "Création du fichier JAR..."
-
-# Supprimer le JAR existant s'il existe
-if [ -f "$APP_NAME.jar" ]; then
-    rm "$APP_NAME.jar"
-    echo "Ancien JAR supprimé"
-fi
-
-# Créer un vrai JAR de bibliothèque
-cd "$BUILD_DIR/WEB-INF/classes" || exit
-
-jar -cf "../../../$APP_NAME.jar" .
-
-cd ../../..
-
-if [ ! -f "$APP_NAME.jar" ]; then
-    echo "Erreur : Échec de la création du JAR"
-    exit 1
-fi
-
-echo "JAR créé : $APP_NAME.jar"
-
-# Déploiement dans Tomcat
-echo "Déploiement sur Tomcat..."
-
-# Arrêt de l'ancienne application si elle existe
-if [ -d "$TOMCAT_WEBAPPS/$APP_NAME" ]; then
-    rm -rf "$TOMCAT_WEBAPPS/$APP_NAME"
-    echo "Ancienne version supprimée"
-fi
-
-# Copie du WAR
-cp -f "$BUILD_DIR/$APP_NAME.war" "$TOMCAT_WEBAPPS/"
-
-if [ $? -eq 0 ]; then
-    echo ""
-    echo "Déploiement terminé avec succès !"
-    echo "Application disponible sur : http://localhost:8080/$APP_NAME"
-    echo ""
-    echo "Redémarrez Tomcat si nécessaire :"
-    echo "   $TOMCAT_DIR/bin/shutdown.sh"
-    echo "   $TOMCAT_DIR/bin/startup.sh"
-    echo ""
-else
-    echo "Erreur lors du déploiement"
+    echo "❌ Échec de la compilation. Vérifiez vos imports ou la présence des JARs Spring dans le dossier 'lib'."
     exit 1
 fi

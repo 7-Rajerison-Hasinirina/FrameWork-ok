@@ -129,32 +129,7 @@ Dans l'Appplication de test on va utilsier notre framework.jar :
 - 1- On va creer un view ( jsp ) qui contient une formulaire avec des champs ( nom, prenom, age ) et un bouton Ajouter 
 - 2- Logiquement, apres avoir cliquer sur le bouton Ajouter, on va envoyer les données vers le controller ( save() ) et on va recuperer ces données dans le controller ( save( nom, prenom, age ) ) et on on ne vas pas encore creer un objet Emps, pour ce premeir phase 
 - 3- Apres avoir recuperer les données dans le controller, on va les envoyer vers le view ( jsp ) pour les afficher ex: RAJERISON, Hasinirina, 20 
-## Etapes:
-- [1] 
-### Étape 1 — Créer la vue formulaire (JSP) : points critiques et utilité
 
-- Objectif : fournir une page HTML (JSP) simple contenant un formulaire POST avec les champs `nom`, `prenom`, `age` et un bouton `Ajouter` qui envoie les données vers `/save`.
-
-- Points critiques :
-    - Nom des champs HTML : utiliser des `name` stables (`nom`, `prenom`, `age`) car le framework les utilisera pour binder aux paramètres méthode.
-    - Méthode HTTP : la form doit utiliser `method="post"` pour correspondre à `@UrlMapping(..., METHOD="POST")`.
-    - Encoding / charset : ajouter `accept-charset="UTF-8"` et header meta pour éviter les problèmes d'encodage.
-    - Validation minimale côté client : simple required/number pour `age` pour éviter données invalides envoyées au serveur.
-    - Emplacement JSP : placer sous le dossier correspondant à `prefix` (ex. `WEB-INF/views/form.jsp`) pour respecter le forwarding du framework.
-
-- Utilité pour le framework :
-    - Permet de tester l'ensemble du pipeline : routing (URL→controller), binding (paramètres HTTP→méthode), invocation et rendu `ModelView`.
-    - Met en évidence les besoins de binding et conversion de types dans `FrontServletController` (string→int pour `age`).
-    - Sert d'exemple minimal pour les utilisateurs du framework qui veulent implémenter des formulaires simples.
-
-- Livrables attendus pour cette étape :
-    - `WEB-INF/views/form.jsp` (formulaire) — fichier JSP prêt à soumettre.
-    - Une route GET vers `/form` (controller dans le projet utilisateur) qui retourne `new ModelView("form")` pour afficher la page.
-
-- Critères de validation (QA rapide) :
-    - Ouvrir `/form` affiche le formulaire correctement.
-    - Soumettre le formulaire en POST vers `/save` envoie les paramètres `nom`, `prenom`, `age` au serveur.
-    - Le serveur reçoit les paramètres (logs ou breakpoint) — sans erreur 404/500 liée au route mapping.
 
 
 

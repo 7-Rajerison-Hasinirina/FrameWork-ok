@@ -16,11 +16,13 @@ import models.ModelView;
 import models.UrlMethode;
 import com.google.gson.Gson;
 import annotations.ApiRest;
+import utilitaires.ParamBinder;
 
 public class FrontServletController extends HttpServlet {
 
     @SuppressWarnings("unchecked")
-    protected void processRequest(HttpServletRequest req, HttpServletResponse res)throws ServletException, IOException {
+    protected void processRequest(HttpServletRequest req, HttpServletResponse res)
+            throws ServletException, IOException {
         Map<UrlMethode, Mapping> urlMappings = (Map<UrlMethode, Mapping>) getServletContext().getAttribute("routes");
 
         if (urlMappings == null) {
@@ -40,21 +42,50 @@ public class FrontServletController extends HttpServlet {
         if (mapping == null) {
             res.setStatus(HttpServletResponse.SC_NOT_FOUND);
             res.setContentType("text/html;charset=UTF-8");
-            res.getWriter().println("<h3>URL indéfinie ou méthode HTTP non supportée : " + urlRecherchee + " [" + methode + "]</h3>");
+            res.getWriter().println(
+                    "<h3>URL indéfinie ou méthode HTTP non supportée : " + urlRecherchee + " [" + methode + "]</h3>");
             return;
         }
 
         try {
             res.setContentType("text/html;charset=UTF-8");
-            WebApplicationContext springContext = WebApplicationContextUtils.getRequiredWebApplicationContext(getServletContext());
+            WebApplicationContext springContext = WebApplicationContextUtils
+                    .getRequiredWebApplicationContext(getServletContext());
 
             String controllerPackage = getServletContext().getInitParameter("Controllers");
 
             Class<?> controllerClass = Class.forName(controllerPackage + "." + mapping.getNomClasse());
             Object controller = springContext.getBean(controllerClass);
-            
-            Method method = controllerClass.getDeclaredMethod(mapping.getNomMethode());
-            Object retour = method.invoke(controller);
+
+            Method method = null;
+            Object retour = null;
+
+            // Trouver une méthode du controller par nom et tenter de binder les paramètres
+            Method[] declared = controllerClass.getDeclaredMethods();
+            Exception lastBindEx = null;
+            for (Method m : declared) {
+                if (!m.getName().equals(mapping.getNomMethode()))
+                    continue;
+                try {
+                    Object[] args = ParamBinder.bindParams(req, m);
+                    method = m;
+                    retour = method.invoke(controller, args);
+                    break;
+                } catch (IllegalArgumentException iae) {
+                    // param manquant ou requis absent, retenir et essayer une autre surcharge
+                    lastBindEx = iae;
+                    // Return 400 if required param missing
+                    res.setStatus(HttpServletResponse.SC_BAD_REQUEST);
+                    res.setContentType("text/plain;charset=UTF-8");
+                    res.getWriter().println("Paramètre requis manquant ou invalide: " + iae.getMessage());
+                    return;
+                }
+            }
+
+            if (method == null) {
+                throw new ServletException("Aucune méthode compatible trouvée pour : " + mapping.getNomMethode(),
+                        lastBindEx);
+            }
 
             if (method.isAnnotationPresent(ApiRest.class)) {
                 res.setContentType("application/json;charset=UTF-8");
@@ -67,34 +98,35 @@ public class FrontServletController extends HttpServlet {
                     out.print(gson.toJson(retour));
                 }
             } else {
-                // COMPORTEMENT CLASSIQUE (ModelView ou HTML brut)
 
                 if (retour instanceof ModelView) {
                     ModelView mv = (ModelView) retour;
                     String prefix = getServletContext().getInitParameter("prefix");
                     String suffix = getServletContext().getInitParameter("suffix");
-                    
-                    if (prefix == null) prefix = "";
-                    if (suffix == null) suffix = "";
-                    
+
+                    if (prefix == null)
+                        prefix = "";
+                    if (suffix == null)
+                        suffix = "";
+
                     for (Map.Entry<String, Object> entry : mv.getData().entrySet()) {
                         req.setAttribute(entry.getKey(), entry.getValue());
                     }
-                    
+
                     String viewPath = prefix + mv.getUrl() + suffix;
                     RequestDispatcher dispatcher = req.getRequestDispatcher(viewPath);
                     dispatcher.forward(req, res);
-                    
+
                 } else if (retour != null) {
                     res.setContentType("text/html;charset=UTF-8");
                     res.getWriter().println(retour.toString());
                 }
             }
         } catch (Exception e) {
-            throw new ServletException("Erreur lors de l'exécution de l'action : " + mapping.getNomClasse() + "." + mapping.getNomMethode(), e);
+            throw new ServletException("Erreur lors de l'exécution de l'action : " + mapping.getNomClasse() + "."
+                    + mapping.getNomMethode(), e);
         }
     }
-
 
     @Override
     protected void doGet(HttpServletRequest req, HttpServletResponse res) throws ServletException, IOException {
@@ -106,7 +138,8 @@ public class FrontServletController extends HttpServlet {
         processRequest(req, res);
     }
 
-    protected void envoyer(HttpServletRequest req, HttpServletResponse res, String path)throws ServletException, IOException {
+    protected void envoyer(HttpServletRequest req, HttpServletResponse res, String path)
+            throws ServletException, IOException {
         RequestDispatcher requestDispatcher = req.getRequestDispatcher(path);
         requestDispatcher.forward(req, res);
     }

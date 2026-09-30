@@ -1,10 +1,10 @@
 package annotations;
 
 import java.lang.annotation.*;
-import org.springframework.stereotype.Component; // Import Spring
+import org.springframework.stereotype.Component; 
 
 @Target(ElementType.TYPE)
 @Retention(RetentionPolicy.RUNTIME)
-@Component // Indique à Spring de créer un Bean pour cette classe !
+@Component 
 public @interface Controllers {
 }

@@ -99,8 +99,25 @@ Dans le projetTest
 
 
 # Sprint-6
-- creation d'une API 
-- miretourne JSON re miantso aanly API 
+- creation d'une @ApiRest ao amle package annotations
+- Configuration dans FrontServletController.java
+    - recuperation de la classe du controller par son nom complet
+    - verifiena fa type json
+    - ra efa chaine de caracter 
+        - on recupere le bean du controller
+        - on recupere la methode cible
+        - on invoke ilay methode
+        - on recupere ilay resultat
+        - on le converti en json
+        - on l'envoie vers le navigateur
 
 cote framework
 - ampiana annotaiton ray : @APIRest 
+
+
+# Sprint-7 
+- Formulaire _ Emp ( c1 , c2, c3 ) + button Submit:save)
+- view ( form) -> controller -> FrontServletController -> ModelView -> view ( jsp )
+0- ex: save()
+1- ex: save( nom, prenom, age )
+2- ex: save( emp) 

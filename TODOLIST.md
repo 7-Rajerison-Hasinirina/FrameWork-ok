@@ -99,8 +99,38 @@ Dans le projetTest
 
 
 # Sprint-6
-- creation d'une API 
-- miretourne JSON re miantso aanly API 
+- creation d'une @ApiRest ao amle package annotations
+- Configuration dans FrontServletController.java
+    - recuperation de la classe du controller par son nom complet
+    - verifiena fa type json
+    - ra efa chaine de caracter 
+        - on recupere le bean du controller
+        - on recupere la methode cible
+        - on invoke ilay methode
+        - on recupere ilay resultat
+        - on le converti en json
+        - on l'envoie vers le navigateur
 
 cote framework
 - ampiana annotaiton ray : @APIRest 
+
+
+# Sprint-7 
+objectifs: 
+- Formulaire _ Emp ( c1 , c2, c3 ) + button Submit:save)
+- view ( form) -> controller -> FrontServletController -> ModelView -> view ( jsp )
+0- ex: save()
+1- ex: save( nom, prenom, age )
+2- ex: save( emp) 
+
+- OBJECTIFS:
+## 1ere phase
+Dans l'Appplication de test on va utilsier notre framework.jar :
+- 1- On va creer un view ( jsp ) qui contient une formulaire avec des champs ( nom, prenom, age ) et un bouton Ajouter 
+- 2- Logiquement, apres avoir cliquer sur le bouton Ajouter, on va envoyer les données vers le controller ( save() ) et on va recuperer ces données dans le controller ( save( nom, prenom, age ) ) et on on ne vas pas encore creer un objet Emps, pour ce premeir phase 
+- 3- Apres avoir recuperer les données dans le controller, on va les envoyer vers le view ( jsp ) pour les afficher ex: RAJERISON, Hasinirina, 20 
+
+
+
+
+

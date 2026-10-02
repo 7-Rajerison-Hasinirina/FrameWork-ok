@@ -12,7 +12,6 @@ public class ParamBinder {
     public static Object[] bindParams(HttpServletRequest req, Method method) throws Exception {
         Parameter[] parameters = method.getParameters();
         Object[] args = new Object[parameters.length];
-
         for (int i = 0; i < parameters.length; i++) {
             Parameter p = parameters[i];
             RequestParam ann = p.getAnnotation(RequestParam.class);
@@ -20,10 +19,8 @@ public class ParamBinder {
             if (ann != null) {
                 paramName = ann.value();
             } else {
-                // fallback: use parameter name if available (requires -parameters)
                 paramName = p.getName();
             }
-
             String raw = req.getParameter(paramName);
 
             if (raw == null) {
@@ -35,7 +32,6 @@ public class ParamBinder {
                 args[i] = ParamConverter.convert(raw, p.getType());
             }
         }
-
         return args;
     }
 }

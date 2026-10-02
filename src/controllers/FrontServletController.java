@@ -49,9 +49,7 @@ public class FrontServletController extends HttpServlet {
 
         try {
             res.setContentType("text/html;charset=UTF-8");
-            WebApplicationContext springContext = WebApplicationContextUtils
-                    .getRequiredWebApplicationContext(getServletContext());
-
+            WebApplicationContext springContext = WebApplicationContextUtils.getRequiredWebApplicationContext(getServletContext());
             String controllerPackage = getServletContext().getInitParameter("Controllers");
 
             Class<?> controllerClass = Class.forName(controllerPackage + "." + mapping.getNomClasse());
@@ -72,9 +70,7 @@ public class FrontServletController extends HttpServlet {
                     retour = method.invoke(controller, args);
                     break;
                 } catch (IllegalArgumentException iae) {
-                    // param manquant ou requis absent, retenir et essayer une autre surcharge
                     lastBindEx = iae;
-                    // Return 400 if required param missing
                     res.setStatus(HttpServletResponse.SC_BAD_REQUEST);
                     res.setContentType("text/plain;charset=UTF-8");
                     res.getWriter().println("Paramètre requis manquant ou invalide: " + iae.getMessage());
@@ -82,6 +78,7 @@ public class FrontServletController extends HttpServlet {
                 }
             }
 
+            
             if (method == null) {
                 throw new ServletException("Aucune méthode compatible trouvée pour : " + mapping.getNomMethode(),
                         lastBindEx);

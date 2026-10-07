@@ -131,6 +131,22 @@ Dans l'Appplication de test on va utilsier notre framework.jar :
 - 3- Apres avoir recuperer les données dans le controller, on va les envoyer vers le view ( jsp ) pour les afficher ex: RAJERISON, Hasinirina, 20 
 
 
+# Sprint-7-bis
+- 2eme phase
+- Objectif:
+- Dans l'Appplication de test on va utilsier notre framework.jar :
+- 1- On va creer un view ( jsp ) qui contient une formulaire avec des champs ( nom, prenom, age ) et un bouton Ajouter 
+- 2- Logiquement, avant on a dans une formuliare app de test:
+une formulaire contennat:
+    - nom
+    - prenom
+    - age 
+et on a pu recuperer ces donnees dans le controller et les afficher juste ( cela veut ddire qu'on a pu recuperer et les manipuler comme on veut )
+- objectif de sprint-7-bis: on va creer un objet Etudiant.java par exemple contenant les champs nom , prneom, age ( de meme ecriture que ces champs ),
+apres, lorsqu'on clique sur le bouton ajouter dans la formuliare par exemple , dans la formuliare on clique sur ajouter -> les donnees sont envoyees vers le controller -> puis on recupere juste Etudiant etudiant ; a ce moment , le nom, prenom, age sotn deja dans l'objet etudiant ( c'est le framework qui va faire le mapping entre les champs de la formuliare et les champs de l'objet Etudiant ) et apres on peut manipuler cet objet etudiant comme on veut ( ex: on peut afficher les champs de cet objet etudiant )
+mais cela ne detruit pas sprint-7 
+ce que nous devons faire ensuite alors c'est de creer cet fonctionnaite dans notre framework en utilisant ce que nous avions deja ;
+
 
 
 

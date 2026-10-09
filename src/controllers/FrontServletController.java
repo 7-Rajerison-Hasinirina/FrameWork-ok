@@ -58,7 +58,7 @@ public class FrontServletController extends HttpServlet {
             Method method = null;
             Object retour = null;
 
-            // Trouver une méthode du controller par nom et tenter de binder les paramètres
+
             Method[] declared = controllerClass.getDeclaredMethods();
             Exception lastBindEx = null;
             for (Method m : declared) {

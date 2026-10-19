@@ -162,4 +162,17 @@ ce que nous devons faire ensuite alors c'est de creer cet fonctionnaite dans not
         - ao am controller , mila autorise zay vo afaka mampiasa
         - manana role xxxxx vo afaka mi executer commande ray 
 
+- Solutions:
+    - MySession
+        - Map( String, object )
+        * methode utilitaire : recuperation , ajout , suprresion varaible 
+=> apetraka anaty methode d'action ray 
+=> ahafahana manao action , supresion , 
 
+cote framework: 
+    - micreer instace anle map -> de fenoina anle httpsession -> hakaana ny attribut/variables retraretra
+    - jerena ra misy type anle session antsika 
+
+- apres invoke, 
+    ->> atao mise a jour le httpsession
+    

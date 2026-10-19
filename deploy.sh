@@ -50,7 +50,11 @@ rm -f sources.txt
 
 if [ $COMPILE_STATUS -eq 0 ]; then
     echo "✅ Compilation réussie. Création du fichier JAR..."
-    
+
+    if [ -f "framework.properties" ]; then
+        cp "framework.properties" "$BIN_DIR/framework.properties"
+    fi
+
     # Déplacement dans le dossier bin pour empaqueter
     cd "$BIN_DIR" || exit
     

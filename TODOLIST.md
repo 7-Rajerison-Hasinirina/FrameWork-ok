@@ -147,6 +147,32 @@ apres, lorsqu'on clique sur le bouton ajouter dans la formuliare par exemple , d
 mais cela ne detruit pas sprint-7 
 ce que nous devons faire ensuite alors c'est de creer cet fonctionnaite dans notre framework en utilisant ce que nous avions deja ;
 
+# Sprint-8 
+- upload fihcier
+    - .properties
+    - dossier
 
 
+# Sprint-9
+- Session
+    1. atao ze ahatonga anle session ana utilisateur mba ho disponible ao am controller an developpeur
+    2. mba afaka mampiasa 
 
+    3.  Autorisation:
+        - ao am controller , mila autorise zay vo afaka mampiasa
+        - manana role xxxxx vo afaka mi executer commande ray 
+
+- Solutions:
+    - MySession
+        - Map( String, object )
+        * methode utilitaire : recuperation , ajout , suprresion varaible 
+=> apetraka anaty methode d'action ray 
+=> ahafahana manao action , supresion , 
+
+cote framework: 
+    - micreer instace anle map -> de fenoina anle httpsession -> hakaana ny attribut/variables retraretra
+    - jerena ra misy type anle session antsika 
+
+- apres invoke, 
+    ->> atao mise a jour le httpsession
+    

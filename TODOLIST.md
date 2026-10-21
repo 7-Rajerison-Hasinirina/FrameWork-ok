@@ -176,3 +176,13 @@ cote framework:
 - apres invoke, 
     ->> atao mise a jour le httpsession
     
+
+# Sprint-10
+- misy authentification --> zay vo mahazo mi executer 
+
+# Sprint-10-bis
+- Misy role maromaro :
+    ex: 
+        - role admin -> adhesion 
+        - role user -> consultation
+        - role manager -> consultation + modification

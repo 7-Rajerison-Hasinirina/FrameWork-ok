@@ -14,7 +14,9 @@ import java.util.Locale;
 
 import annotations.RequestParam;
 import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpSession;
 import jakarta.servlet.http.Part;
+import models.MySession;
 
 public class ParamBinder {
 
@@ -24,6 +26,16 @@ public class ParamBinder {
         for (int i = 0; i < parameters.length; i++) {
             Parameter p = parameters[i];
             Class<?> type = p.getType();
+
+            if (type.equals(HttpSession.class)) {
+                args[i] = req.getSession();
+                continue;
+            }
+
+            if (type.equals(MySession.class)) {
+                args[i] = new MySession(req.getSession());
+                continue;
+            }
 
             if (type.equals(Part.class) || type.equals(File.class)) {
                 RequestParam ann = p.getAnnotation(RequestParam.class);

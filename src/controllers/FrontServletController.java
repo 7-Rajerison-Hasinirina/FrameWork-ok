@@ -18,6 +18,7 @@ import models.UrlMethode;
 import com.google.gson.Gson;
 import annotations.ApiRest;
 import annotations.AuthRequired;
+import annotations.RequiresRole;
 import utilitaires.ParamBinder;
 
 public class FrontServletController extends HttpServlet {
@@ -70,6 +71,12 @@ public class FrontServletController extends HttpServlet {
                     AuthRequired authRequired = getAuthRequirement(controllerClass, m);
                     if (authRequired != null && !isAuthenticated(req, authRequired.value())) {
                         handleAuthenticationFailure(req, res, authRequired);
+                        return;
+                    }
+
+                    RequiresRole requiresRole = getRequiresRole(controllerClass, m);
+                    if (requiresRole != null && !hasRequiredRole(req, requiresRole.value())) {
+                        handleRoleFailure(req, res, requiresRole);
                         return;
                     }
 
@@ -142,6 +149,16 @@ public class FrontServletController extends HttpServlet {
         return null;
     }
 
+    protected RequiresRole getRequiresRole(Class<?> controllerClass, Method method) {
+        if (method.isAnnotationPresent(RequiresRole.class)) {
+            return method.getAnnotation(RequiresRole.class);
+        }
+        if (controllerClass.isAnnotationPresent(RequiresRole.class)) {
+            return controllerClass.getAnnotation(RequiresRole.class);
+        }
+        return null;
+    }
+
     protected boolean isAuthenticated(HttpServletRequest req, String attributeName) {
         if (req == null || attributeName == null || attributeName.trim().isEmpty()) {
             return false;
@@ -149,6 +166,30 @@ public class FrontServletController extends HttpServlet {
 
         HttpSession session = req.getSession(false);
         return session != null && session.getAttribute(attributeName) != null;
+    }
+
+    protected boolean hasRequiredRole(HttpServletRequest req, String[] roles) {
+        if (req == null || roles == null || roles.length == 0) {
+            return false;
+        }
+
+        HttpSession session = req.getSession(false);
+        if (session == null) {
+            return false;
+        }
+
+        Object roleObject = session.getAttribute("role");
+        if (!(roleObject instanceof String)) {
+            return false;
+        }
+
+        String currentRole = ((String) roleObject).trim();
+        for (String role : roles) {
+            if (role != null && role.equalsIgnoreCase(currentRole)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     protected void handleAuthenticationFailure(HttpServletRequest req, HttpServletResponse res,
@@ -166,6 +207,26 @@ public class FrontServletController extends HttpServlet {
 
         if (req != null && loginPage != null && !loginPage.trim().isEmpty()) {
             res.sendRedirect(req.getContextPath() + loginPage);
+            return;
+        }
+
+        res.setContentType("text/html;charset=UTF-8");
+        res.getWriter().println("<h3>" + message + "</h3>");
+    }
+
+    protected void handleRoleFailure(HttpServletRequest req, HttpServletResponse res, RequiresRole requiresRole)
+            throws IOException {
+        if (res == null) {
+            return;
+        }
+
+        res.setStatus(HttpServletResponse.SC_FORBIDDEN);
+
+        String deniedPage = requiresRole != null ? requiresRole.accessDeniedPage() : null;
+        String message = requiresRole != null ? requiresRole.message() : "Accès refusé pour ce rôle.";
+
+        if (req != null && deniedPage != null && !deniedPage.trim().isEmpty()) {
+            res.sendRedirect(req.getContextPath() + deniedPage);
             return;
         }
 

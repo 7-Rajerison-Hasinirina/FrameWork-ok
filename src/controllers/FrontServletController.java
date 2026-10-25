@@ -9,6 +9,7 @@ import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServlet;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import jakarta.servlet.http.HttpSession;
 import org.springframework.web.context.WebApplicationContext;
 import org.springframework.web.context.support.WebApplicationContextUtils;
 import models.Mapping;
@@ -16,6 +17,7 @@ import models.ModelView;
 import models.UrlMethode;
 import com.google.gson.Gson;
 import annotations.ApiRest;
+import annotations.AuthRequired;
 import utilitaires.ParamBinder;
 
 public class FrontServletController extends HttpServlet {
@@ -49,7 +51,8 @@ public class FrontServletController extends HttpServlet {
 
         try {
             res.setContentType("text/html;charset=UTF-8");
-            WebApplicationContext springContext = WebApplicationContextUtils.getRequiredWebApplicationContext(getServletContext());
+            WebApplicationContext springContext = WebApplicationContextUtils
+                    .getRequiredWebApplicationContext(getServletContext());
             String controllerPackage = getServletContext().getInitParameter("Controllers");
 
             Class<?> controllerClass = Class.forName(controllerPackage + "." + mapping.getNomClasse());
@@ -58,13 +61,18 @@ public class FrontServletController extends HttpServlet {
             Method method = null;
             Object retour = null;
 
-
             Method[] declared = controllerClass.getDeclaredMethods();
             Exception lastBindEx = null;
             for (Method m : declared) {
                 if (!m.getName().equals(mapping.getNomMethode()))
                     continue;
                 try {
+                    AuthRequired authRequired = getAuthRequirement(controllerClass, m);
+                    if (authRequired != null && !isAuthenticated(req, authRequired.value())) {
+                        handleAuthenticationFailure(req, res, authRequired);
+                        return;
+                    }
+
                     Object[] args = ParamBinder.bindParams(req, m);
                     method = m;
                     retour = method.invoke(controller, args);
@@ -78,7 +86,6 @@ public class FrontServletController extends HttpServlet {
                 }
             }
 
-            
             if (method == null) {
                 throw new ServletException("Aucune méthode compatible trouvée pour : " + mapping.getNomMethode(),
                         lastBindEx);
@@ -123,6 +130,47 @@ public class FrontServletController extends HttpServlet {
             throw new ServletException("Erreur lors de l'exécution de l'action : " + mapping.getNomClasse() + "."
                     + mapping.getNomMethode(), e);
         }
+    }
+
+    protected AuthRequired getAuthRequirement(Class<?> controllerClass, Method method) {
+        if (method.isAnnotationPresent(AuthRequired.class)) {
+            return method.getAnnotation(AuthRequired.class);
+        }
+        if (controllerClass.isAnnotationPresent(AuthRequired.class)) {
+            return controllerClass.getAnnotation(AuthRequired.class);
+        }
+        return null;
+    }
+
+    protected boolean isAuthenticated(HttpServletRequest req, String attributeName) {
+        if (req == null || attributeName == null || attributeName.trim().isEmpty()) {
+            return false;
+        }
+
+        HttpSession session = req.getSession(false);
+        return session != null && session.getAttribute(attributeName) != null;
+    }
+
+    protected void handleAuthenticationFailure(HttpServletRequest req, HttpServletResponse res,
+            AuthRequired authRequired)
+            throws IOException {
+        if (res == null) {
+            return;
+        }
+
+        res.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+
+        String loginPage = authRequired != null ? authRequired.loginPage() : null;
+        String message = authRequired != null ? authRequired.message()
+                : "Vous devez vous connecter pour accéder à cette ressource.";
+
+        if (req != null && loginPage != null && !loginPage.trim().isEmpty()) {
+            res.sendRedirect(req.getContextPath() + loginPage);
+            return;
+        }
+
+        res.setContentType("text/html;charset=UTF-8");
+        res.getWriter().println("<h3>" + message + "</h3>");
     }
 
     @Override

@@ -33,7 +33,7 @@ public class ParamBinder {
             }
 
             if (type.equals(MySession.class)) {
-                args[i] = new MySession(req.getSession());
+                args[i] = MySession.fromRequest(req);
                 continue;
             }
 

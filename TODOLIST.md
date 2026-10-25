@@ -179,6 +179,13 @@ cote framework:
 
 # Sprint-10
 - misy authentification --> zay vo mahazo mi executer 
+on va ajouter la notin de authentification dans le cote de notre framework 
+en basans par notre session avant et on va le continue r
+je sia pas si on doit crer un controller ou autre mais on doit suivre la logqieu de spring boot quand il avait cree la notion de authentification 
+plus precisement, la noiton de session est deja ça va 
+amis maintenant , l'objectif est quand il y a un client s'authentifie , et il peut executer une action , ex: il peut cliquer un bouton mais tatn qu'il ne s'authentifie pas , ( le session de cet user est vide ), il n'arrive jamaexeis dans la page par exemple :
+on ne gere pas encore le role mais juste
+- s'authentifier -> execute une action 
 
 # Sprint-10-bis
 - Misy role maromaro :

@@ -26,8 +26,7 @@ import utilitaires.ParamBinder;
 public class FrontServletController extends HttpServlet {
 
     @SuppressWarnings("unchecked")
-    protected void processRequest(HttpServletRequest req, HttpServletResponse res)
-            throws ServletException, IOException {
+    protected void processRequest(HttpServletRequest req, HttpServletResponse res) throws ServletException, IOException {
         Map<UrlMethode, Mapping> routes = (Map<UrlMethode, Mapping>) getServletContext().getAttribute("routes");
 
         if (routes == null) {
@@ -54,12 +53,9 @@ public class FrontServletController extends HttpServlet {
         }
     }
 
-    private void executeMappedAction(HttpServletRequest req, HttpServletResponse res, Mapping mapping)
-            throws Exception {
+    private void executeMappedAction(HttpServletRequest req, HttpServletResponse res, Mapping mapping) throws Exception {
         res.setContentType("text/html;charset=UTF-8");
-
-        WebApplicationContext springContext = WebApplicationContextUtils
-                .getRequiredWebApplicationContext(getServletContext());
+        WebApplicationContext springContext = WebApplicationContextUtils.getRequiredWebApplicationContext(getServletContext());
         String controllerPackage = getServletContext().getInitParameter("Controllers");
 
         Class<?> controllerClass = Class.forName(controllerPackage + "." + mapping.getNomClasse());

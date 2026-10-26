@@ -1,40 +1,56 @@
 package models;
 
 public class UrlMethode {
-    private String url;
-    private String methode;
+    private final String url;
+    private final String methode;
 
     public UrlMethode(String url, String methode) {
         this.url = url;
         this.methode = methode;
     }
 
-    public String geturl() {
+    public String getUrl() {
         return url;
     }
 
-    public String getmethode() {
+    public String getMethode() {
         return methode;
     }
+
+    public String geturl() {
+        return getUrl();
+    }
+
+    public String getmethode() {
+        return getMethode();
+    }
+
     @Override
     public boolean equals(Object obj) {
-        if (this == obj)
+        if (this == obj) {
             return true;
-        if (obj == null)
+        }
+        if (obj == null || getClass() != obj.getClass()) {
             return false;
-        if (getClass() != obj.getClass())
-            return false;
+        }
+
         UrlMethode other = (UrlMethode) obj;
         if (methode == null) {
-            if (other.methode != null)
+            if (other.methode != null) {
                 return false;
-        } else if (!methode.equals(other.methode))
+            }
+        } else if (!methode.equals(other.methode)) {
             return false;
+        }
+
         if (url == null) {
-            if (other.url != null)
+            if (other.url != null) {
                 return false;
-        } else if (!url.equals(other.url))
+            }
+        } else if (!url.equals(other.url)) {
             return false;
+        }
+
         return true;
     }
 
@@ -46,5 +62,4 @@ public class UrlMethode {
         result = prime * result + ((url == null) ? 0 : url.hashCode());
         return result;
     }
-            
-}   
+}

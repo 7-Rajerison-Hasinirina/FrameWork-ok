@@ -4,21 +4,23 @@ import java.io.IOException;
 import java.io.PrintWriter;
 import java.lang.reflect.Method;
 import java.util.Map;
+
+import org.springframework.web.context.WebApplicationContext;
+import org.springframework.web.context.support.WebApplicationContextUtils;
+
+import annotations.ApiRest;
+import annotations.AuthRequired;
+import annotations.RequiresRole;
+import com.google.gson.Gson;
 import jakarta.servlet.RequestDispatcher;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServlet;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.servlet.http.HttpSession;
-import org.springframework.web.context.WebApplicationContext;
-import org.springframework.web.context.support.WebApplicationContextUtils;
 import models.Mapping;
 import models.ModelView;
 import models.UrlMethode;
-import com.google.gson.Gson;
-import annotations.ApiRest;
-import annotations.AuthRequired;
-import annotations.RequiresRole;
 import utilitaires.ParamBinder;
 
 public class FrontServletController extends HttpServlet {
@@ -26,116 +28,131 @@ public class FrontServletController extends HttpServlet {
     @SuppressWarnings("unchecked")
     protected void processRequest(HttpServletRequest req, HttpServletResponse res)
             throws ServletException, IOException {
-        Map<UrlMethode, Mapping> urlMappings = (Map<UrlMethode, Mapping>) getServletContext().getAttribute("routes");
+        Map<UrlMethode, Mapping> routes = (Map<UrlMethode, Mapping>) getServletContext().getAttribute("routes");
 
-        if (urlMappings == null) {
-            res.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
-            res.setContentType("text/plain;charset=UTF-8");
-            res.getWriter().println("Erreur Interne: La table de routage n'a pas été initialisée.");
+        if (routes == null) {
+            writeInternalError(res, "Erreur Interne: La table de routage n'a pas été initialisée.");
             return;
         }
 
-        String methode = req.getMethod().toUpperCase();
-        String url = req.getRequestURI();
-        String contexte = req.getContextPath();
-        String urlRecherchee = url.substring(contexte.length());
-
-        Mapping mapping = urlMappings.get(new UrlMethode(urlRecherchee, methode));
+        String httpMethod = req.getMethod().toUpperCase();
+        String requestUri = req.getRequestURI();
+        String contextPath = req.getContextPath();
+        String routeUrl = requestUri.substring(contextPath.length());
+        Mapping mapping = routes.get(new UrlMethode(routeUrl, httpMethod));
 
         if (mapping == null) {
-            res.setStatus(HttpServletResponse.SC_NOT_FOUND);
-            res.setContentType("text/html;charset=UTF-8");
-            res.getWriter().println(
-                    "<h3>URL indéfinie ou méthode HTTP non supportée : " + urlRecherchee + " [" + methode + "]</h3>");
+            writeNotFound(res, routeUrl, httpMethod);
             return;
         }
 
         try {
-            res.setContentType("text/html;charset=UTF-8");
-            WebApplicationContext springContext = WebApplicationContextUtils
-                    .getRequiredWebApplicationContext(getServletContext());
-            String controllerPackage = getServletContext().getInitParameter("Controllers");
-
-            Class<?> controllerClass = Class.forName(controllerPackage + "." + mapping.getNomClasse());
-            Object controller = springContext.getBean(controllerClass);
-
-            Method method = null;
-            Object retour = null;
-
-            Method[] declared = controllerClass.getDeclaredMethods();
-            Exception lastBindEx = null;
-            for (Method m : declared) {
-                if (!m.getName().equals(mapping.getNomMethode()))
-                    continue;
-                try {
-                    AuthRequired authRequired = getAuthRequirement(controllerClass, m);
-                    if (authRequired != null && !isAuthenticated(req, authRequired.value())) {
-                        handleAuthenticationFailure(req, res, authRequired);
-                        return;
-                    }
-
-                    RequiresRole requiresRole = getRequiresRole(controllerClass, m);
-                    if (requiresRole != null && !hasRequiredRole(req, requiresRole.value())) {
-                        handleRoleFailure(req, res, requiresRole);
-                        return;
-                    }
-
-                    Object[] args = ParamBinder.bindParams(req, m);
-                    method = m;
-                    retour = method.invoke(controller, args);
-                    break;
-                } catch (IllegalArgumentException iae) {
-                    lastBindEx = iae;
-                    res.setStatus(HttpServletResponse.SC_BAD_REQUEST);
-                    res.setContentType("text/plain;charset=UTF-8");
-                    res.getWriter().println("Paramètre requis manquant ou invalide: " + iae.getMessage());
-                    return;
-                }
-            }
-
-            if (method == null) {
-                throw new ServletException("Aucune méthode compatible trouvée pour : " + mapping.getNomMethode(),
-                        lastBindEx);
-            }
-
-            if (method.isAnnotationPresent(ApiRest.class)) {
-                res.setContentType("application/json;charset=UTF-8");
-                PrintWriter out = res.getWriter();
-
-                if (retour instanceof String) {
-                    out.print((String) retour);
-                } else if (retour != null) {
-                    Gson gson = new Gson();
-                    out.print(gson.toJson(retour));
-                }
-            } else {
-
-                if (retour instanceof ModelView) {
-                    ModelView mv = (ModelView) retour;
-                    String prefix = getServletContext().getInitParameter("prefix");
-                    String suffix = getServletContext().getInitParameter("suffix");
-
-                    if (prefix == null)
-                        prefix = "";
-                    if (suffix == null)
-                        suffix = "";
-
-                    for (Map.Entry<String, Object> entry : mv.getData().entrySet()) {
-                        req.setAttribute(entry.getKey(), entry.getValue());
-                    }
-
-                    String viewPath = prefix + mv.getUrl() + suffix;
-                    RequestDispatcher dispatcher = req.getRequestDispatcher(viewPath);
-                    dispatcher.forward(req, res);
-
-                } else if (retour != null) {
-                    res.setContentType("text/html;charset=UTF-8");
-                    res.getWriter().println(retour.toString());
-                }
-            }
+            executeMappedAction(req, res, mapping);
         } catch (Exception e) {
             throw new ServletException("Erreur lors de l'exécution de l'action : " + mapping.getNomClasse() + "."
                     + mapping.getNomMethode(), e);
+        }
+    }
+
+    private void executeMappedAction(HttpServletRequest req, HttpServletResponse res, Mapping mapping)
+            throws Exception {
+        res.setContentType("text/html;charset=UTF-8");
+
+        WebApplicationContext springContext = WebApplicationContextUtils
+                .getRequiredWebApplicationContext(getServletContext());
+        String controllerPackage = getServletContext().getInitParameter("Controllers");
+
+        Class<?> controllerClass = Class.forName(controllerPackage + "." + mapping.getNomClasse());
+        Object controller = springContext.getBean(controllerClass);
+
+        Method matchedMethod = findMatchingMethod(controllerClass, mapping.getNomMethode());
+        if (matchedMethod == null) {
+            throw new ServletException("Aucune méthode compatible trouvée pour : " + mapping.getNomMethode());
+        }
+
+        AuthRequired authRequired = getAuthRequirement(controllerClass, matchedMethod);
+        if (authRequired != null && !isAuthenticated(req, authRequired.value())) {
+            handleAuthenticationFailure(req, res, authRequired);
+            return;
+        }
+
+        RequiresRole requiresRole = getRequiresRole(controllerClass, matchedMethod);
+        if (requiresRole != null && !hasRequiredRole(req, requiresRole.value())) {
+            handleRoleFailure(req, res, requiresRole);
+            return;
+        }
+
+        try {
+            Object[] args = ParamBinder.bindParams(req, matchedMethod);
+            Object result = matchedMethod.invoke(controller, args);
+            renderResult(req, res, matchedMethod, result);
+        } catch (IllegalArgumentException iae) {
+            res.setStatus(HttpServletResponse.SC_BAD_REQUEST);
+            res.setContentType("text/plain;charset=UTF-8");
+            res.getWriter().println("Paramètre requis manquant ou invalide: " + iae.getMessage());
+        }
+    }
+
+    private Method findMatchingMethod(Class<?> controllerClass, String methodName) {
+        Method[] methods = controllerClass.getDeclaredMethods();
+        for (Method method : methods) {
+            if (method.getName().equals(methodName)) {
+                return method;
+            }
+        }
+        return null;
+    }
+
+    private void renderResult(HttpServletRequest req, HttpServletResponse res, Method method, Object result)
+            throws IOException, ServletException {
+        if (method.isAnnotationPresent(ApiRest.class)) {
+            renderJsonResponse(res, result);
+            return;
+        }
+
+        if (result instanceof ModelView) {
+            renderModelView(req, res, (ModelView) result);
+            return;
+        }
+
+        if (result != null) {
+            res.setContentType("text/html;charset=UTF-8");
+            res.getWriter().println(result.toString());
+        }
+    }
+
+    private void renderModelView(HttpServletRequest req, HttpServletResponse res, ModelView modelView)
+            throws ServletException, IOException {
+        for (Map.Entry<String, Object> entry : modelView.getData().entrySet()) {
+            req.setAttribute(entry.getKey(), entry.getValue());
+        }
+
+        String prefix = getServletContext().getInitParameter("prefix");
+        String suffix = getServletContext().getInitParameter("suffix");
+        if (prefix == null) {
+            prefix = "";
+        }
+        if (suffix == null) {
+            suffix = "";
+        }
+
+        String viewPath = prefix + modelView.getUrl() + suffix;
+        RequestDispatcher dispatcher = req.getRequestDispatcher(viewPath);
+        dispatcher.forward(req, res);
+    }
+
+    private void renderJsonResponse(HttpServletResponse res, Object result) throws IOException {
+        res.setContentType("application/json;charset=UTF-8");
+        PrintWriter out = res.getWriter();
+
+        if (result instanceof String) {
+            out.print((String) result);
+            return;
+        }
+
+        if (result != null) {
+            Gson gson = new Gson();
+            out.print(gson.toJson(result));
         }
     }
 
@@ -193,8 +210,7 @@ public class FrontServletController extends HttpServlet {
     }
 
     protected void handleAuthenticationFailure(HttpServletRequest req, HttpServletResponse res,
-            AuthRequired authRequired)
-            throws IOException {
+            AuthRequired authRequired) throws IOException {
         if (res == null) {
             return;
         }
@@ -232,6 +248,19 @@ public class FrontServletController extends HttpServlet {
 
         res.setContentType("text/html;charset=UTF-8");
         res.getWriter().println("<h3>" + message + "</h3>");
+    }
+
+    private void writeInternalError(HttpServletResponse res, String message) throws IOException {
+        res.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
+        res.setContentType("text/plain;charset=UTF-8");
+        res.getWriter().println(message);
+    }
+
+    private void writeNotFound(HttpServletResponse res, String routeUrl, String httpMethod) throws IOException {
+        res.setStatus(HttpServletResponse.SC_NOT_FOUND);
+        res.setContentType("text/html;charset=UTF-8");
+        res.getWriter().println(
+                "<h3>URL indéfinie ou méthode HTTP non supportée : " + routeUrl + " [" + httpMethod + "]</h3>");
     }
 
     @Override

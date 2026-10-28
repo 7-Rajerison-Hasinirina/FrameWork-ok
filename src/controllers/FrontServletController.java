@@ -264,6 +264,7 @@ public class FrontServletController extends HttpServlet {
         processRequest(req, res);
     }
 
+    
     @Override
     protected void doPost(HttpServletRequest req, HttpServletResponse res) throws ServletException, IOException {
         processRequest(req, res);

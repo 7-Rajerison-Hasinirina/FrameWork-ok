@@ -23,45 +23,48 @@ public class ParamBinder {
     public static Object[] bindParams(HttpServletRequest req, Method method) throws Exception {
         Parameter[] parameters = method.getParameters();
         Object[] args = new Object[parameters.length];
+
         for (int i = 0; i < parameters.length; i++) {
-            Parameter p = parameters[i];
-            Class<?> type = p.getType();
-
-            if (type.equals(HttpSession.class)) {
-                args[i] = req.getSession();
-                continue;
-            }
-
-            if (type.equals(MySession.class)) {
-                args[i] = MySession.fromRequest(req);
-                continue;
-            }
-
-            if (type.equals(Part.class) || type.equals(File.class)) {
-                RequestParam ann = p.getAnnotation(RequestParam.class);
-                String paramName = ann != null ? ann.value() : p.getName();
-                args[i] = bindUploadParameter(req, paramName, type, ann != null ? ann.required() : true);
-                continue;
-            }
-
-            if (isSimpleType(type)) {
-                RequestParam ann = p.getAnnotation(RequestParam.class);
-                String paramName = ann != null ? ann.value() : p.getName();
-                String raw = resolveRequestValue(req, paramName);
-
-                if (raw == null) {
-                    if (ann != null && ann.required()) {
-                        throw new IllegalArgumentException("Required parameter '" + paramName + "' is missing");
-                    }
-                    args[i] = null;
-                } else {
-                    args[i] = ParamConverter.convert(raw, type);
-                }
-            } else {
-                args[i] = bindObject(req, type);
-            }
+            args[i] = bindParameter(req, parameters[i]);
         }
+
         return args;
+    }
+
+    private static Object bindParameter(HttpServletRequest req, Parameter parameter) throws Exception {
+        Class<?> parameterType = parameter.getType();
+
+        if (parameterType.equals(HttpSession.class)) {
+            return req.getSession();
+        }
+
+        if (parameterType.equals(MySession.class)) {
+            return MySession.fromRequest(req);
+        }
+
+        if (parameterType.equals(Part.class) || parameterType.equals(File.class)) {
+            RequestParam annotation = parameter.getAnnotation(RequestParam.class);
+            String paramName = annotation != null ? annotation.value() : parameter.getName();
+            return bindUploadParameter(req, paramName, parameterType,
+                    annotation != null ? annotation.required() : true);
+        }
+
+        if (isSimpleType(parameterType)) {
+            RequestParam annotation = parameter.getAnnotation(RequestParam.class);
+            String paramName = annotation != null ? annotation.value() : parameter.getName();
+            String rawValue = resolveRequestValue(req, paramName);
+
+            if (rawValue == null) {
+                if (annotation != null && annotation.required()) {
+                    throw new IllegalArgumentException("Required parameter '" + paramName + "' is missing");
+                }
+                return null;
+            }
+
+            return ParamConverter.convert(rawValue, parameterType);
+        }
+
+        return bindObject(req, parameterType);
     }
 
     private static String resolveRequestValue(HttpServletRequest req, String paramName) throws Exception {
@@ -87,13 +90,14 @@ public class ParamBinder {
     }
 
     private static String readPartAsText(Part part) throws IOException {
-        try (InputStream in = part.getInputStream(); ByteArrayOutputStream out = new ByteArrayOutputStream()) {
+        try (InputStream inputStream = part.getInputStream();
+                ByteArrayOutputStream outputStream = new ByteArrayOutputStream()) {
             byte[] buffer = new byte[4096];
             int read;
-            while ((read = in.read(buffer)) != -1) {
-                out.write(buffer, 0, read);
+            while ((read = inputStream.read(buffer)) != -1) {
+                outputStream.write(buffer, 0, read);
             }
-            return out.toString(StandardCharsets.UTF_8.name());
+            return outputStream.toString(StandardCharsets.UTF_8.name());
         }
     }
 
@@ -145,39 +149,52 @@ public class ParamBinder {
 
         for (Field field : getAllFields(type)) {
             String fieldName = field.getName();
-
             if (field.getType().equals(Part.class) || field.getType().equals(File.class)) {
                 Object value = bindUploadParameter(req, fieldName, field.getType(), false);
                 if (value == null) {
                     continue;
                 }
-
-                Method setter = findSetter(type, fieldName);
-                if (setter != null) {
-                    setter.invoke(instance, value);
-                } else {
-                    field.setAccessible(true);
-                    field.set(instance, value);
-                }
+                injectValue(instance, type, fieldName, value);
                 continue;
             }
 
-            String raw = resolveRequestValue(req, fieldName);
-            if (raw == null) {
+            String rawValue = resolveRequestValue(req, fieldName);
+            if (rawValue == null) {
                 continue;
             }
 
-            Object value = ParamConverter.convert(raw, field.getType());
-            Method setter = findSetter(type, fieldName);
-            if (setter != null) {
-                setter.invoke(instance, value);
-            } else {
-                field.setAccessible(true);
-                field.set(instance, value);
-            }
+            Object value = ParamConverter.convert(rawValue, field.getType());
+            injectValue(instance, type, fieldName, value);
         }
 
         return instance;
+    }
+
+    private static void injectValue(Object instance, Class<?> type, String fieldName, Object value) throws Exception {
+        Method setter = findSetter(type, fieldName);
+        if (setter != null) {
+            setter.invoke(instance, value);
+            return;
+        }
+
+        Field field = getField(type, fieldName);
+        if (field != null) {
+            field.setAccessible(true);
+            field.set(instance, value);
+        }
+    }
+
+    private static Field getField(Class<?> type, String fieldName) {
+        Class<?> currentType = type;
+        while (currentType != null) {
+            for (Field field : currentType.getDeclaredFields()) {
+                if (field.getName().equals(fieldName)) {
+                    return field;
+                }
+            }
+            currentType = currentType.getSuperclass();
+        }
+        return null;
     }
 
     private static List<Field> getAllFields(Class<?> type) {

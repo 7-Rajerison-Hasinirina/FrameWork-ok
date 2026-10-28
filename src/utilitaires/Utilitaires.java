@@ -5,38 +5,33 @@ import java.lang.annotation.Annotation;
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Target;
 import java.lang.reflect.Method;
+import java.net.URL;
 import java.util.ArrayList;
 import java.util.List;
-import java.net.URL;
 
 public class Utilitaires {
 
     public static List<String> getClassByPackageAndAnnotation(Class<? extends Annotation> annotation,
-            String packageName, ElementType type)
-            throws Exception {
-        try {
-            if (typeElementValide(annotation, type)) {
-                List<String> listeClass = new ArrayList<>();
-                List<Class<?>> classInPackage = getClassByPackage(packageName);
-                List<Class<?>> classByAnnotation = filterByAnnotation(classInPackage, annotation);
-
-                for (Class<?> class1 : classByAnnotation) {
-                    listeClass.add(class1.getSimpleName());
-                }
-
-                return listeClass;
-            }
-        } catch (Exception e) {
-            throw e;
+            String packageName, ElementType type) throws Exception {
+        if (!typeElementValide(annotation, type)) {
+            return null;
         }
 
-        return null;
+        List<String> classNames = new ArrayList<>();
+        List<Class<?>> classesInPackage = getClassByPackage(packageName);
+        List<Class<?>> annotatedClasses = filterByAnnotation(classesInPackage, annotation);
+
+        for (Class<?> currentClass : annotatedClasses) {
+            classNames.add(currentClass.getSimpleName());
+        }
+
+        return classNames;
     }
 
     public static List<Class<?>> getClassByPackage(String packageName) throws Exception {
         ClassLoader classLoader = Thread.currentThread().getContextClassLoader();
-        String path = packageName.replace('.', '/');
-        URL resource = classLoader.getResource(path);
+        String packagePath = packageName.replace('.', '/');
+        URL resource = classLoader.getResource(packagePath);
 
         if (resource == null) {
             throw new IllegalArgumentException("Aucun répertoire trouvé pour le package " + packageName);
@@ -45,37 +40,45 @@ public class Utilitaires {
         File directory = new File(resource.getFile());
         List<Class<?>> classes = new ArrayList<>();
 
-        if (directory.exists()) {
-            File[] files = directory.listFiles();
-            if (files != null) {
-                for (File file : files) {
-                    if (file.getName().endsWith(".class")) {
-                        String className = packageName + '.' + file.getName().substring(0, file.getName().length() - 6);
-                        classes.add(Class.forName(className));
-                    }
-                }
+        if (!directory.exists()) {
+            return classes;
+        }
+
+        File[] files = directory.listFiles();
+        if (files == null) {
+            return classes;
+        }
+
+        for (File file : files) {
+            if (!file.getName().endsWith(".class")) {
+                continue;
             }
+
+            String className = packageName + '.' + file.getName().substring(0, file.getName().length() - 6);
+            classes.add(Class.forName(className));
         }
 
         return classes;
     }
 
-    public static List<Class<?>> filterByAnnotation(List<Class<?>> listeClass, Class<? extends Annotation> annotation) {
-        List<Class<?>> classDispo = new ArrayList<>();
-        for (Class<?> classes : listeClass) {
-            if (classes.isAnnotationPresent(annotation)) {
-                classDispo.add(classes);
+    public static List<Class<?>> filterByAnnotation(List<Class<?>> classes, Class<? extends Annotation> annotation) {
+        List<Class<?>> matchingClasses = new ArrayList<>();
+        for (Class<?> currentClass : classes) {
+            if (currentClass.isAnnotationPresent(annotation)) {
+                matchingClasses.add(currentClass);
             }
         }
-        return classDispo;
+        return matchingClasses;
     }
 
     public static boolean typeElementValide(Class<? extends Annotation> annotation, ElementType type) {
         Target target = annotation.getAnnotation(Target.class);
-        ElementType[] elementTypes = target.value();
+        if (target == null) {
+            return false;
+        }
 
-        for (ElementType elementType : elementTypes) {
-            if (type.equals(elementType)) {
+        for (ElementType targetType : target.value()) {
+            if (type.equals(targetType)) {
                 return true;
             }
         }
@@ -84,12 +87,12 @@ public class Utilitaires {
     }
 
     public static List<Method> getMethodesAnnotees(Class<?> classe, Class<? extends Annotation> annotation) {
-        List<Method> listeMethodes = new ArrayList<>();
-        for (Method methode : classe.getDeclaredMethods()) {
-            if (methode.isAnnotationPresent(annotation)) {
-                listeMethodes.add(methode);
+        List<Method> annotatedMethods = new ArrayList<>();
+        for (Method method : classe.getDeclaredMethods()) {
+            if (method.isAnnotationPresent(annotation)) {
+                annotatedMethods.add(method);
             }
         }
-        return listeMethodes;
+        return annotatedMethods;
     }
 }

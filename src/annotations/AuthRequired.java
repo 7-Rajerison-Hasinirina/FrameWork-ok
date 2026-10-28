@@ -9,8 +9,6 @@ import java.lang.annotation.Target;
 @Retention(RetentionPolicy.RUNTIME)
 public @interface AuthRequired {
     String value() default "user";
-
     String loginPage() default "/login.jsp";
-
     String message() default "Vous devez vous connecter pour accéder à cette ressource.";
 }

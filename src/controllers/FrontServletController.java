@@ -2,8 +2,10 @@ package controllers;
 
 import java.io.IOException;
 import java.io.PrintWriter;
+import java.lang.reflect.Constructor;
 import java.lang.reflect.Method;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 import org.springframework.web.context.WebApplicationContext;
 import org.springframework.web.context.support.WebApplicationContextUtils;
@@ -25,8 +27,31 @@ import utilitaires.ParamBinder;
 
 public class FrontServletController extends HttpServlet {
 
+    private final Map<Class<?>, Object> controllerCache = new ConcurrentHashMap<>();
+
+    protected Object getControllerInstance(Class<?> controllerClass) throws Exception {
+        return controllerCache.computeIfAbsent(controllerClass, clazz -> {
+            try {
+                WebApplicationContext springContext = WebApplicationContextUtils
+                        .getRequiredWebApplicationContext(getServletContext());
+                return springContext.getBean(clazz);
+            } catch (Exception e) {
+                try {
+                    Constructor<?> constructor = clazz.getDeclaredConstructor();
+                    constructor.setAccessible(true);
+                    return constructor.newInstance();
+                } catch (ReflectiveOperationException ignored) {
+                    throw new IllegalStateException(
+                            "Impossible d'instancier le contrôleur " + clazz.getName() + ".",
+                            e);
+                }
+            }
+        });
+    }
+
     @SuppressWarnings("unchecked")
-    protected void processRequest(HttpServletRequest req, HttpServletResponse res) throws ServletException, IOException {
+    protected void processRequest(HttpServletRequest req, HttpServletResponse res)
+            throws ServletException, IOException {
         Map<UrlMethode, Mapping> routes = (Map<UrlMethode, Mapping>) getServletContext().getAttribute("routes");
 
         if (routes == null) {
@@ -53,13 +78,13 @@ public class FrontServletController extends HttpServlet {
         }
     }
 
-    private void executeMappedAction(HttpServletRequest req, HttpServletResponse res, Mapping mapping) throws Exception {
+    private void executeMappedAction(HttpServletRequest req, HttpServletResponse res, Mapping mapping)
+            throws Exception {
         res.setContentType("text/html;charset=UTF-8");
-        WebApplicationContext springContext = WebApplicationContextUtils.getRequiredWebApplicationContext(getServletContext());
         String controllerPackage = getServletContext().getInitParameter("Controllers");
 
         Class<?> controllerClass = Class.forName(controllerPackage + "." + mapping.getNomClasse());
-        Object controller = springContext.getBean(controllerClass);
+        Object controller = getControllerInstance(controllerClass);
 
         Method matchedMethod = findMatchingMethod(controllerClass, mapping.getNomMethode());
         if (matchedMethod == null) {
@@ -264,7 +289,6 @@ public class FrontServletController extends HttpServlet {
         processRequest(req, res);
     }
 
-    
     @Override
     protected void doPost(HttpServletRequest req, HttpServletResponse res) throws ServletException, IOException {
         processRequest(req, res);
